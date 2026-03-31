@@ -1,0 +1,148 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: uid
+// Fields:
+//   - uid: string (required)
+//   - firstName: string (required)
+//   - photoUrl: string (optional)
+//   - balance: number (required)
+//   - totalAdsWatched: integer
+//   - totalBirrEarned: number
+//   - totalTasksCompleted: integer
+//   - inviteCount: integer
+//   - referrerUid: string
+//   - language: string (en/am)
+//   - isBanned: boolean
+//   - lastAdWatchedAt: string (ISO 8601)
+//   - adsWatchedToday: integer
+//   - lastDailyResetAt: string (ISO 8601)
+//   - createdAt: string (ISO 8601)
+//
+// Collection: adConfig
+// Document ID: global
+// Fields:
+//   - rewardPerAd: number
+//   - dailyLimit: integer
+//   - cooldownSeconds: integer
+//   - minWithdrawal: number
+//   - maxWithdrawal: number
+//
+// Collection: withdrawals
+// Document ID: requestId
+// Fields:
+//   - uid: string
+//   - firstName: string
+//   - bank: string
+//   - accountName: string
+//   - amount: number
+//   - status: string (pending/approved/rejected)
+//   - createdAt: string (ISO 8601)
+//
+// Collection: tasks
+// Document ID: taskId
+// Fields:
+//   - title: string
+//   - description: string
+//   - type: string (channel/group)
+//   - link: string
+//   - reward: number
+//   - isActive: boolean
+//
+// Collection: userTasks
+// Document ID: uid_taskId
+// Fields:
+//   - uid: string
+//   - taskId: string
+//   - status: string (completed)
+//   - completedAt: string (ISO 8601)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "maktame7@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'firstName', 'balance']) &&
+             data.uid is string && data.uid.size() > 0 &&
+             data.firstName is string && data.firstName.size() > 0 && data.firstName.size() < 100 &&
+             data.balance is number && data.balance >= 0;
+    }
+
+    function isValidWithdrawal(data) {
+      return data.keys().hasAll(['uid', 'bank', 'amount', 'status', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.bank in ['CBE', 'Dashen Bank', 'Awash Bank', 'Bank of Abyssinia', 'Wegagen Bank', 'Telebirr'] &&
+             data.amount is number && data.amount > 0 &&
+             data.status == 'pending';
+    }
+
+    function isUserDoc(uid) {
+      return isAuthenticated(); // Simplified for automatic Telegram login
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{uid} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data);
+      allow update: if isAuthenticated() && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isBanned']) || isAdmin());
+    }
+
+    match /adConfig/global {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /withdrawals/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidWithdrawal(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /userTasks/{uid_taskId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    match /promoCodes/{codeId} {
+      allow read: if isAdmin(); // Users shouldn't read all codes
+      allow write: if isAdmin();
+    }
+
+    // Leaderboard access
+    match /users/{uid} {
+      // Allow public read of specific fields for leaderboard
+      allow list: if isAuthenticated();
+    }
+  }
+}

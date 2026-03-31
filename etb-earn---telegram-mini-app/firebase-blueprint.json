@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and earnings data",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "firstName": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "balance": { "type": "number" },
+        "totalAdsWatched": { "type": "integer" },
+        "totalBirrEarned": { "type": "number" },
+        "totalTasksCompleted": { "type": "integer" },
+        "inviteCount": { "type": "integer" },
+        "referrerUid": { "type": "string" },
+        "language": { "type": "string", "enum": ["en", "am"] },
+        "isBanned": { "type": "boolean" },
+        "lastAdWatchedAt": { "type": "string", "format": "date-time" },
+        "adsWatchedToday": { "type": "integer" },
+        "lastDailyResetAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "firstName", "balance"]
+    },
+    "AdConfig": {
+      "title": "AdConfig",
+      "description": "Global configuration for ads",
+      "type": "object",
+      "properties": {
+        "rewardPerAd": { "type": "number" },
+        "dailyLimit": { "type": "integer" },
+        "cooldownSeconds": { "type": "integer" },
+        "minWithdrawal": { "type": "number" },
+        "maxWithdrawal": { "type": "number" }
+      }
+    },
+    "WithdrawalRequest": {
+      "title": "WithdrawalRequest",
+      "description": "User withdrawal request",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "firstName": { "type": "string" },
+        "bank": { "type": "string" },
+        "accountName": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Telegram channel/group subscription task",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["channel", "group"] },
+        "link": { "type": "string" },
+        "reward": { "type": "number" },
+        "isActive": { "type": "boolean" }
+      }
+    },
+    "UserTask": {
+      "title": "UserTask",
+      "description": "Tracking user task completion",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "taskId": { "type": "string" },
+        "status": { "type": "string", "enum": ["completed"] },
+        "completedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "PromoCode": {
+      "title": "PromoCode",
+      "description": "Promotional codes for bonus Birr",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "reward": { "type": "number" },
+        "usageLimit": { "type": "integer" },
+        "usedCount": { "type": "integer" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/adConfig/global": {
+      "schema": "AdConfig",
+      "description": "Global settings"
+    },
+    "/withdrawals/{requestId}": {
+      "schema": "WithdrawalRequest",
+      "description": "Withdrawal requests"
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Available tasks"
+    },
+    "/userTasks/{uid_taskId}": {
+      "schema": "UserTask",
+      "description": "User task completions"
+    },
+    "/promoCodes/{codeId}": {
+      "schema": "PromoCode",
+      "description": "Promo codes"
+    }
+  }
+}
